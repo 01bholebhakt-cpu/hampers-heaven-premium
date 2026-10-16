@@ -1,5 +1,8 @@
 
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 const categories = [
   {
@@ -7,28 +10,28 @@ const categories = [
     description: "Make their day unforgettable",
     image:
       "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=700&q=85",
-    href: "/shop?category=birthday",
+    href: "/shop",
   },
   {
     name: "Anniversary",
     description: "For your favourite love story",
     image:
       "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?auto=format&fit=crop&w=700&q=85",
-    href: "/shop?category=anniversary",
+    href: "/shop",
   },
   {
     name: "Chocolate Hampers",
     description: "A little box of happiness",
     image:
       "https://images.unsplash.com/photo-1548907040-4d42cfc2b6b2?auto=format&fit=crop&w=700&q=85",
-    href: "/shop?category=chocolate",
+    href: "/shop",
   },
   {
     name: "Just Because",
     description: "Surprise them for no reason",
     image:
       "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?auto=format&fit=crop&w=700&q=85",
-    href: "/shop?category=surprise",
+    href: "/shop",
   },
 ];
 
@@ -104,7 +107,72 @@ const whatsapp =
     "Hi Hampers Heaven! I would like to know more about your gift hampers."
   );
 
+type Product = (typeof products)[number];
+
+type CartItem = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  description: string;
+  quantity: number;
+};
+
 export default function HomePage() {
+  const [message, setMessage] = useState("");
+
+  function addToBag(product: Product) {
+    try {
+      const saved = localStorage.getItem("hampers-heaven-cart");
+      const cart: CartItem[] = saved ? JSON.parse(saved) : [];
+      const existing = cart.find((item) => item.id === product.id);
+
+      const updated = existing
+        ? cart.map((item) =>
+            item.id === product.id
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
+        : [
+            ...cart,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              image: product.image,
+              description: product.description,
+              quantity: 1,
+            },
+          ];
+
+      localStorage.setItem("hampers-heaven-cart", JSON.stringify(updated));
+      setMessage(`${product.name} added to your bag!`);
+    } catch {
+      setMessage("Could not update your bag. Please try again.");
+    }
+  }
+
+  function addToWishlist(product: Product) {
+    try {
+      const saved = localStorage.getItem("hampers-heaven-wishlist");
+      const wishlist: Product[] = saved ? JSON.parse(saved) : [];
+
+      if (wishlist.some((item) => item.id === product.id)) {
+        setMessage("This gift is already in your wishlist.");
+        return;
+      }
+
+      localStorage.setItem(
+        "hampers-heaven-wishlist",
+        JSON.stringify([...wishlist, product])
+      );
+
+      setMessage(`${product.name} saved to your wishlist!`);
+    } catch {
+      setMessage("Could not update your wishlist. Please try again.");
+    }
+  }
+
   return (
     <main>
       <div className="announcement">
@@ -126,7 +194,7 @@ export default function HomePage() {
           <nav className="main-nav" aria-label="Main navigation">
             <Link href="/">Home</Link>
             <Link href="/shop">Shop All</Link>
-            <Link href="/gift-boxes">Gift Boxes</Link>
+            <Link href="/shop">Gift Boxes</Link>
             <Link href="/gift-finder">Gift Finder</Link>
             <Link href="/about">Our Story</Link>
             <Link href="/contact">Contact</Link>
@@ -155,7 +223,9 @@ export default function HomePage() {
 
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">THOUGHTFULLY CURATED · BEAUTIFULLY GIFTED</span>
+          <span className="eyebrow">
+            THOUGHTFULLY CURATED · BEAUTIFULLY GIFTED
+          </span>
           <h1>
             Some feelings
             <br />
@@ -196,7 +266,7 @@ export default function HomePage() {
             }}
           >
             <span style={{ color: "#b87884", fontSize: 20 }}>★★★★★</span>
-            Thoughtful gifts for life's little moments
+            Thoughtful gifts for life&apos;s little moments
           </div>
         </div>
 
@@ -234,7 +304,11 @@ export default function HomePage() {
                 className="category-card"
                 key={category.name}
               >
-                <img src={category.image} alt={category.name} loading="lazy" />
+                <img
+                  src={category.image}
+                  alt={category.name}
+                  loading="lazy"
+                />
                 <div className="category-card-content">
                   <h3>{category.name}</h3>
                   <p>{category.description}</p>
@@ -257,6 +331,16 @@ export default function HomePage() {
               receive.
             </p>
           </div>
+
+          {message && (
+            <div className="notice" role="status" aria-live="polite">
+              {message}
+              {" "}
+              <Link href="/cart">View bag</Link>
+              {" · "}
+              <Link href="/wishlist">View wishlist</Link>
+            </div>
+          )}
 
           <div className="product-grid">
             {products.map((product) => (
@@ -288,26 +372,38 @@ export default function HomePage() {
                   </div>
 
                   <div className="product-actions">
-                    <Link
-                      href={`/product/${product.id}`}
+                    <button
+                      type="button"
                       className="button"
+                      onClick={() => addToBag(product)}
                     >
-                      VIEW GIFT ↗
-                    </Link>
-                    <Link
-                      href={
-                        "https://wa.me/919122930001?text=" +
-                        encodeURIComponent(
-                          `Hi! I am interested in ${product.name} priced at ₹${product.price}.`
-                        )
-                      }
-                      target="_blank"
-                      rel="noreferrer"
+                      ADD TO BAG +
+                    </button>
+
+                    <button
+                      type="button"
                       className="button button-outline"
+                      onClick={() => addToWishlist(product)}
+                      aria-label={`Add ${product.name} to wishlist`}
+                      title="Add to wishlist"
                     >
-                      ENQUIRE
-                    </Link>
+                      ♡
+                    </button>
                   </div>
+
+                  <Link
+                    href={
+                      "https://wa.me/919122930001?text=" +
+                      encodeURIComponent(
+                        `Hi! I am interested in ${product.name} priced at ₹${product.price}.`
+                      )
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-link"
+                  >
+                    ENQUIRE ON WHATSAPP ↗
+                  </Link>
                 </div>
               </article>
             ))}
@@ -369,7 +465,7 @@ export default function HomePage() {
         </span>
         <h2>Good things are worth sharing.</h2>
         <p>
-          Have something special in mind? We'd love to help you find it.
+          Have something special in mind? We&apos;d love to help you find it.
         </p>
         <Link
           href={whatsapp}
@@ -411,7 +507,7 @@ export default function HomePage() {
                 rel="noreferrer"
                 className="text-link"
               >
-                LET'S TALK GIFTS ↗
+                LET&apos;S TALK GIFTS ↗
               </Link>
             </div>
 
@@ -419,14 +515,14 @@ export default function HomePage() {
               <h3>Explore</h3>
               <div className="footer-links">
                 <Link href="/shop">Shop All</Link>
-                <Link href="/gift-boxes">Gift Boxes</Link>
+                <Link href="/shop">Gift Boxes</Link>
                 <Link href="/gift-finder">Gift Finder</Link>
                 <Link href="/reviews">Customer Reviews</Link>
               </div>
             </div>
 
             <div>
-              <h3>We're Here</h3>
+              <h3>We&apos;re Here</h3>
               <div className="footer-links">
                 <Link href="/about">Our Story</Link>
                 <Link href="/contact">Contact Us</Link>
@@ -439,8 +535,8 @@ export default function HomePage() {
               <h3>Good to Know</h3>
               <div className="footer-links">
                 <Link href="/privacy">Privacy Policy</Link>
-                <Link href="/terms">Terms & Conditions</Link>
-                <Link href="/size-guide">Hamper Guide</Link>
+                <Link href="/terms">Terms &amp; Conditions</Link>
+                <Link href="/returns">Returns &amp; Refunds</Link>
                 <Link href="/cart">Your Cart</Link>
               </div>
             </div>
